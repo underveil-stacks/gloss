@@ -1,49 +1,10 @@
 # Known vulnerabilities that are accepted for now. Each entry needs a reason
 # and an expiry, so it comes back for review instead of being forgotten.
-
-[[IgnoredVulns]]
-id = "GHSA-238p-pmpm-9mq7"
-ignoreUntil = 2027-01-07
-reason = """
-Low severity, in the copy of KaTeX that Mermaid bundles (0.16.x); the newest \
-Mermaid still ships it. It is a gadget that needs prototype pollution from \
-some other flaw, and its effect is a script-capable link or an external load, \
-both of which the page's content security policy blocks. Gloss's own KaTeX \
-is a fixed version. Recheck when Mermaid updates its KaTeX."""
-
-
-[[IgnoredVulns]]
-id = "GHSA-cg2g-xh64-v4q7"
-ignoreUntil = 2026-11-24
-reason = """
-In the copy of DOMPurify (3.4.12) that Mermaid bundles; no Mermaid release \
-ships the fixed 3.4.17 yet (12.2.0 still bundles 3.4.12). Each advisory needs \
-a non-default option (PARSER_MEDIA_TYPE xhtml, SAFE_FOR_TEMPLATES with DOM \
-output, or IN_PLACE with a hook) and ends in script-capable markup: an event \
-handler or a javascript: link. The page's content security policy runs only \
-scripts carrying the page's nonce, which blocks both, and Gloss runs Mermaid \
-with securityLevel strict. Recheck when Mermaid updates its DOMPurify."""
-
-[[IgnoredVulns]]
-id = "GHSA-mrv2-3pqr-j5jr"
-ignoreUntil = 2026-11-24
-reason = """
-In the copy of DOMPurify (3.4.12) that Mermaid bundles; no Mermaid release \
-ships the fixed 3.4.17 yet (12.2.0 still bundles 3.4.12). Each advisory needs \
-a non-default option (PARSER_MEDIA_TYPE xhtml, SAFE_FOR_TEMPLATES with DOM \
-output, or IN_PLACE with a hook) and ends in script-capable markup: an event \
-handler or a javascript: link. The page's content security policy runs only \
-scripts carrying the page's nonce, which blocks both, and Gloss runs Mermaid \
-with securityLevel strict. Recheck when Mermaid updates its DOMPurify."""
-
-[[IgnoredVulns]]
-id = "GHSA-c6gr-qvv4-5v3f"
-ignoreUntil = 2026-11-24
-reason = """
-In the copy of DOMPurify (3.4.12) that Mermaid bundles; no Mermaid release \
-ships the fixed 3.4.17 yet (12.2.0 still bundles 3.4.12). Each advisory needs \
-a non-default option (PARSER_MEDIA_TYPE xhtml, SAFE_FOR_TEMPLATES with DOM \
-output, or IN_PLACE with a hook) and ends in script-capable markup: an event \
-handler or a javascript: link. The page's content security policy runs only \
-scripts carrying the page's nonce, which blocks both, and Gloss runs Mermaid \
-with securityLevel strict. Recheck when Mermaid updates its DOMPurify."""
+#
+# None at the moment. The last ones, in the DOMPurify and KaTeX copies that
+# Mermaid bundles, were fixed by Mermaid 12.3.0 (DOMPurify 3.4.17, KaTeX 0.18.10).
+#
+# [[IgnoredVulns]]
+# id = "GHSA-xxxx-xxxx-xxxx"
+# ignoreUntil = 2027-01-01
+# reason = """Why it cannot be exploited here, and when to look again."""
