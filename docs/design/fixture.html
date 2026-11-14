@@ -1,0 +1,417 @@
+<!doctype html>
+<!-- Design fixture for the built-in themes. Not shipped in the app.
+     The page structure follows docs/bundles.md; the only additions are the
+     switcher at the end of the body and the script that drives it.
+     Open it straight from disk. URL parameters: ?theme=gloss-dark|gloss-light|longform|none
+     &appearance=light|dark &chrome=0 (hide the switcher, for screenshots). -->
+<html data-appearance="dark" data-theme="io.sigler.webby.gloss.dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gloss theme fixture</title>
+<link rel="stylesheet" href="../../App/Resources/base.css">
+<link rel="stylesheet" id="fixture-theme" href="../../App/Bundles/gloss-dark.glossbundle/theme.css">
+<link rel="stylesheet" media="print" href="../../App/Resources/print.css">
+<style>
+  /* Fixture chrome only. Nothing here styles the document. */
+  .fixture-switcher {
+    position: fixed; inset: auto 12px 12px auto; z-index: 10;
+    display: flex; gap: 8px; align-items: center; padding: 6px 8px;
+    font: 12px/1.2 -apple-system, system-ui, sans-serif;
+    color: #f2f2f2; background: #222; border: 1px solid #555; border-radius: 8px;
+  }
+  .fixture-switcher select { font: inherit; }
+  @media print { .fixture-switcher { display: none; } }
+</style>
+</head>
+<body>
+<header class="gloss-frontmatter">
+  <dl>
+    <dt>title</dt><dd>Deploying a service to app-01</dd>
+    <dt>status</dt><dd>active</dd>
+    <dt>owner</dt><dd>platform</dd>
+    <dt>tags</dt><dd>runbook, deploy, systemd, haproxy</dd>
+    <dt>last_reviewed</dt><dd>2026-10-04</dd>
+    <dt>supersedes</dt><dd>infrastructure/service-deployment.md, the Pi-Docker label-router pattern</dd>
+  </dl>
+</header>
+<article class="markdown-body">
+
+<h1 id="deploying-a-service-to-app-01">Deploying a service to app-01</h1>
+
+<p>Every service runs as a hardened <code>systemd</code> unit on <code>app-01</code>, behind that host's HAProxy, with a backend that listens on loopback and never handles TLS. This runbook covers the whole chain from a merged pull request to a verified version at <code>/about</code>. It assumes you have read <a href="https://example.org/standards/api-services">the deployment standard</a> and that you can reach the host over SSH.</p>
+
+<p>Merging does <strong>not</strong> deploy, and neither does cutting a release. The chain is deliberate and has three steps in three repositories; a run that reports success while production stays on the old version almost always means the second step was skipped.<sup class="footnote-ref"><a href="#fn-1" id="fnref-1" data-footnote-ref>1</a></sup> If you only remember one thing: <em>bump the pin</em>.</p>
+
+<div class="markdown-alert markdown-alert-note">
+  <p class="markdown-alert-title">Note</p>
+  <p>The release pipeline cross-compiles on a hosted runner. <code>app-01</code> never compiles from source, so a missing <code>SHA256SUMS</code> asset fails the play before anything is installed.</p>
+</div>
+
+<h2 id="the-chain-at-a-glance">The chain at a glance</h2>
+
+<ol>
+  <li>Tag the service repository. Only a <code>v*</code> tag triggers <code>release.yml</code>.
+    <ol>
+      <li>The gate runs <code>go test</code>, <code>go vet</code> and <code>govulncheck</code> on the latest stable Go.
+        <ol>
+          <li>A vulnerability in a dependency that is not reachable from the binary does not fail the gate.</li>
+          <li>One that is reachable does, and the fix is a dependency bump, not an ignore rule.</li>
+        </ol>
+      </li>
+      <li>The build publishes one release with <code>linux/amd64</code> and <code>linux/arm64</code> binaries.</li>
+    </ol>
+  </li>
+  <li>Bump the pinned version in <code>deploy-config</code>.
+    <ul>
+      <li>The pin lives in <code>roles/&lt;service&gt;/defaults/main.yml</code>.
+        <ul>
+          <li>The role installs the pinned version, never "latest".
+            <ul>
+              <li>A stale pin reinstalls the old binary and the run still goes green.</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+      <li>Open a pull request, wait for a named check to conclude, then merge.</li>
+    </ul>
+  </li>
+  <li>Dispatch the Deploy workflow by hand, one service at a time.</li>
+</ol>
+
+<h3 id="before-you-start">Before you start</h3>
+
+<ul class="contains-task-list">
+  <li class="task-list-item"><input type="checkbox" disabled checked> Pull request merged to <code>main</code> and the local checkout synced</li>
+  <li class="task-list-item"><input type="checkbox" disabled checked> Migration numbers checked against <code>origin/main</code> for collisions</li>
+  <li class="task-list-item"><input type="checkbox" disabled> Dry run reviewed, with no unexpected <code>changed</code> tasks
+    <ul class="contains-task-list">
+      <li class="task-list-item"><input type="checkbox" disabled checked> HAProxy fragment validates</li>
+      <li class="task-list-item"><input type="checkbox" disabled> No other Deploy run is in progress on the runner</li>
+    </ul>
+  </li>
+  <li class="task-list-item"><input type="checkbox" disabled> The <code>gateway</code> session told about any actor-facing change</li>
+</ul>
+
+<h2 id="step-1-tag-and-release">Step 1: tag and release</h2>
+
+<p>From a clean worktree on a fresh <code>origin/main</code>. Press <kbd>⌃</kbd> <kbd>C</kbd> to stop the watch once the named check has concluded; a watch that prints "no checks reported" is not a green build.</p>
+
+<pre><code class="language-bash hljs"><span class="hljs-comment"># Tag from a clean worktree so another session's branch cannot ride along</span>
+git fetch origin
+git worktree add /tmp/wt-release -b release/v2.4.0 origin/main
+git -C /tmp/wt-release tag -s v2.4.0 -m <span class="hljs-string">"notes v2.4.0: schedule registry, actor lane"</span>
+git -C /tmp/wt-release push origin v2.4.0
+
+<span class="hljs-comment"># Watch the release; this one line is long on purpose, to show how a code block behaves when a command does not fit the column</span>
+gh run watch <span class="hljs-string">"<span class="hljs-subst">$(gh run list --repo example/notes --workflow release.yml --limit 1 --json databaseId --jq '.[0].databaseId')</span>"</span> --repo example/notes --exit-status &amp;&amp; <span class="hljs-built_in">echo</span> <span class="hljs-string">"released"</span>
+
+<span class="hljs-keyword">if</span> [[ <span class="hljs-string">"<span class="hljs-variable">${DRY_RUN:-true}</span>"</span> == <span class="hljs-literal">false</span> ]]; <span class="hljs-keyword">then</span>
+  <span class="hljs-built_in">export</span> RELEASE_TAG=v2.4.0 RETRIES=<span class="hljs-number">3</span>
+<span class="hljs-keyword">fi</span></code></pre>
+
+<h2 id="step-2-bump-the-pin">Step 2: bump the pin</h2>
+
+<p>The defaults file says "Bump after each release" for a reason. The change is one line:</p>
+
+<pre><code class="language-diff hljs"><span class="hljs-meta">@@ -1,7 +1,7 @@</span>
+ ---
+ notes_user: notes
+ notes_listen: "127.0.0.1:8087"
+<span class="hljs-deletion">-notes_version: "v2.3.1"</span>
+<span class="hljs-addition">+notes_version: "v2.4.0"</span>
+ notes_environment:
+   NOTES_LOG_LEVEL: info</code></pre>
+
+<p>The role's unit template is where the hardening lives. Do not loosen it to make a feature work:</p>
+
+<pre><code class="language-yaml hljs"><span class="hljs-comment"># roles/notes/defaults/main.yml</span>
+<span class="hljs-attr">notes_version:</span> <span class="hljs-string">"v2.4.0"</span>
+<span class="hljs-attr">notes_listen:</span> <span class="hljs-string">"127.0.0.1:8087"</span>
+<span class="hljs-attr">notes_hardening:</span>
+  <span class="hljs-attr">NoNewPrivileges:</span> <span class="hljs-literal">true</span>
+  <span class="hljs-attr">ProtectSystem:</span> <span class="hljs-string">strict</span>
+  <span class="hljs-attr">MemoryMax:</span> <span class="hljs-string">512M</span>
+  <span class="hljs-attr">RestartSec:</span> <span class="hljs-number">5</span>
+<span class="hljs-attr">notes_scrape:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">job:</span> <span class="hljs-string">notes</span>
+    <span class="hljs-attr">path:</span> <span class="hljs-string">/metrics</span></code></pre>
+
+<div class="markdown-alert markdown-alert-warning">
+  <p class="markdown-alert-title">Warning</p>
+  <p>A redeploy that changes an HAProxy <code>conf.d</code> fragment can fail on the role's inline <code>validate:</code> step. A dry run cannot catch this. Read the run log before retrying.</p>
+</div>
+
+<h2 id="step-3-dispatch-and-verify">Step 3: dispatch and verify</h2>
+
+<p>This is a production action. Dispatch deploys one at a time; parallel runs race on the runner's shared collections.</p>
+
+<div class="markdown-alert markdown-alert-caution">
+  <p class="markdown-alert-title">Caution</p>
+  <p>Never run a full client walk against the public edge from your workstation. The 4xx-storm ban firewalls your address, SSH included. Use loopback on the host.</p>
+</div>
+
+<pre><code>$ gh workflow run Deploy --repo example/deploy-config -f tag=notes -f dry_run=false
+✓ Created workflow_dispatch event for deploy.yml at main
+
+$ curl -s https://api.notes.example.com/about | jq -r .version
+v2.4.0</code></pre>
+
+<p>The block above has no language, so it carries no highlighting. The service reports its own state; this is the part of <code>/about</code> the play asserts against:</p>
+
+<pre><code class="language-json hljs"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">"service"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"notes"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"version"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"v2.4.0"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"uptime_seconds"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4127</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"mesh_auth"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"enabled"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal">true</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"degraded_reason"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal">null</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"source"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"https://github.com/example/notes"</span>
+<span class="hljs-punctuation">}</span></code></pre>
+
+<h2 id="service-catalogue">Service catalogue</h2>
+
+<p>The table is wider than the column on purpose. It scrolls sideways inside the column; the page itself never does.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Service</th>
+      <th>Unit</th>
+      <th align="right">Port</th>
+      <th>Pinned version</th>
+      <th>Store</th>
+      <th>Auth pattern</th>
+      <th align="right">p95 latency</th>
+      <th align="center">Alert rule</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><a href="https://example.org/notes">notes</a></td>
+      <td><code>notes.service</code></td>
+      <td align="right">8087</td>
+      <td><code>v2.4.0</code></td>
+      <td>Postgres</td>
+      <td>BFF-in-API</td>
+      <td align="right">41 ms</td>
+      <td align="center">NotesDown</td>
+      <td>Time domain: tasks, reminders, the agenda and calendar projection</td>
+    </tr>
+    <tr>
+      <td><a href="https://example.org/rivulet">rivulet</a></td>
+      <td><code>rivulet.service</code></td>
+      <td align="right">8091</td>
+      <td><code>v0.17.0</code></td>
+      <td>Postgres + pgvector</td>
+      <td>Bearer JWT</td>
+      <td align="right">118 ms</td>
+      <td align="center">RivuletFetchStalled</td>
+      <td>Feed aggregation; read-state parameters are inverted, see the reference</td>
+    </tr>
+    <tr>
+      <td><a href="https://example.org/ledger">ledger</a></td>
+      <td><code>ledger.service</code></td>
+      <td align="right">8084</td>
+      <td><code>v1.12.3</code></td>
+      <td>Postgres + pgvector</td>
+      <td>API key</td>
+      <td align="right">9 ms</td>
+      <td align="center">LedgerSyncBacklog</td>
+      <td>Semantic memory and the incident collection</td>
+    </tr>
+    <tr>
+      <td><a href="https://example.org/relay">relay</a></td>
+      <td><code>relay.service</code></td>
+      <td align="right">8099</td>
+      <td><code>v0.7.0</code></td>
+      <td>SQLite (WAL)</td>
+      <td>Mesh token</td>
+      <td align="right">3 ms</td>
+      <td align="center">RelayExpiryLag</td>
+      <td>Hosted on a separate registrable domain</td>
+    </tr>
+    <tr>
+      <td><a href="https://example.org/gallery">gallery-api</a></td>
+      <td><code>gallery-api.service</code></td>
+      <td align="right">8093</td>
+      <td><code>v0.3.0</code></td>
+      <td>Postgres + Garage S3</td>
+      <td>BFF-in-API</td>
+      <td align="right">1,204 ms</td>
+      <td align="center">GalleryQueueDepth</td>
+      <td>Generation is asynchronous; latency is for the submit call only</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>A small table stays as narrow as its content:</p>
+
+<table>
+  <thead><tr><th>Token</th><th align="right">Lifetime</th></tr></thead>
+  <tbody>
+    <tr><td>Mesh</td><td align="right">15 min</td></tr>
+    <tr><td>Refresh</td><td align="right">30 d</td></tr>
+  </tbody>
+</table>
+
+<h2 id="when-it-goes-wrong">When it goes wrong</h2>
+
+<p>Read the three pillars in order: metrics tell you <em>what</em> broke and <em>when</em>, edge logs tell you <em>which requests</em>, application logs tell you <em>why</em>. A long path such as <code>/Users/operator/src/github.com/example/deploy-config/roles/notes/templates/notes.service.j2</code> wraps inside its paragraph instead of widening the page.</p>
+
+<blockquote>
+  <p>If this silently stopped working, what would page? The answer must be the name of a rule.</p>
+  <blockquote>
+    <p>"Be more careful" is not a structural fix.</p>
+  </blockquote>
+</blockquote>
+
+<div class="markdown-alert markdown-alert-tip">
+  <p class="markdown-alert-title">Tip</p>
+  <p>A 401 with a 38-byte body in under 150 µs means the request carried no credential at all. A 30-byte body means a bad token. The cadence tells you which client is retrying.</p>
+</div>
+
+<div class="markdown-alert markdown-alert-important">
+  <p class="markdown-alert-title">Important</p>
+  <p>A green step is not proof that it acted. Read the step's log before reporting that a ping, a notification or a write happened.</p>
+</div>
+
+<h3 id="the-health-handler">The health handler</h3>
+
+<p>What the play polls after a restart. Go:</p>
+
+<pre><code class="language-go hljs"><span class="hljs-comment">// Health reports readiness. It must stay cheap: the deploy polls it every 500ms.</span>
+<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(s *Server)</span></span> <span class="hljs-title">Health</span><span class="hljs-params">(w http.ResponseWriter, r *http.Request)</span> {
+	ctx, cancel := context.WithTimeout(r.Context(), <span class="hljs-number">250</span>*time.Millisecond)
+	<span class="hljs-keyword">defer</span> cancel()
+	<span class="hljs-keyword">if</span> err := s.db.PingContext(ctx); err != <span class="hljs-literal">nil</span> {
+		http.Error(w, fmt.Sprintf(<span class="hljs-string">"database unreachable: %v"</span>, err), http.StatusServiceUnavailable)
+		<span class="hljs-keyword">return</span>
+	}
+	w.Header().Set(<span class="hljs-string">"Content-Type"</span>, <span class="hljs-string">"application/json"</span>)
+	_ = json.NewEncoder(w).Encode(<span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]<span class="hljs-type">any</span>{<span class="hljs-string">"status"</span>: <span class="hljs-string">"ok"</span>, <span class="hljs-string">"version"</span>: version})
+}</code></pre>
+
+<h4 id="a-client-in-swift">A client in Swift</h4>
+
+<pre><code class="language-swift hljs"><span class="hljs-meta">@MainActor</span>
+<span class="hljs-keyword">final</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">AboutClient</span>: <span class="hljs-title class_">ObservableObject</span> {
+    <span class="hljs-meta">@Published</span> <span class="hljs-keyword">private(set)</span> <span class="hljs-keyword">var</span> version: <span class="hljs-type">String</span>?
+
+    <span class="hljs-keyword">func</span> <span class="hljs-title function_">refresh</span>(<span class="hljs-params">from</span> <span class="hljs-params">base</span>: <span class="hljs-type">URL</span>) <span class="hljs-keyword">async</span> <span class="hljs-keyword">throws</span> {
+        <span class="hljs-keyword">let</span> (data, <span class="hljs-keyword">_</span>) <span class="hljs-operator">=</span> <span class="hljs-keyword">try</span> <span class="hljs-keyword">await</span> <span class="hljs-type">URLSession</span>.shared.data(from: base.appending(path: <span class="hljs-string">"about"</span>))
+        version <span class="hljs-operator">=</span> <span class="hljs-keyword">try</span> <span class="hljs-type">JSONDecoder</span>().decode(<span class="hljs-type">About</span>.<span class="hljs-keyword">self</span>, from: data).version <span class="hljs-comment">// nil until first load</span>
+    }
+}</code></pre>
+
+<h5 id="a-probe-in-python">A probe in Python</h5>
+
+<pre><code class="language-python hljs"><span class="hljs-keyword">import</span> re
+<span class="hljs-keyword">from</span> dataclasses <span class="hljs-keyword">import</span> dataclass
+
+VERSION = re.<span class="hljs-built_in">compile</span>(<span class="hljs-string">r"^v(\d+)\.(\d+)\.(\d+)$"</span>)
+
+<span class="hljs-meta">@dataclass(<span class="hljs-params">frozen=<span class="hljs-literal">True</span></span>)</span>
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">Probe</span>:
+    service: <span class="hljs-built_in">str</span>
+    retries: <span class="hljs-built_in">int</span> = <span class="hljs-number">3</span>
+
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">url</span>(<span class="hljs-params">self</span>) -&gt; <span class="hljs-built_in">str</span>:
+        <span class="hljs-keyword">return</span> <span class="hljs-string">f"http://127.0.0.1:<span class="hljs-subst">{PORTS[self.service]}</span>/about"</span></code></pre>
+
+<h6 id="a-rule-in-css">A rule in CSS</h6>
+
+<pre><code class="language-css hljs"><span class="hljs-selector-tag">html</span><span class="hljs-selector-attr">[data-appearance=<span class="hljs-string">"dark"</span>]</span> <span class="hljs-selector-class">.markdown-body</span> <span class="hljs-selector-tag">a</span><span class="hljs-selector-pseudo">:hover</span> {
+  <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--gloss-link-hover);
+  <span class="hljs-attribute">text-decoration-thickness</span>: <span class="hljs-number">2px</span>;
+}</code></pre>
+
+<h2 id="reference">Reference</h2>
+
+<p>Inline elements in one paragraph: <strong>strong</strong>, <em>emphasis</em>, <strong><em>both</em></strong>, <del>the retired Pi-Docker model</del>, <code>inline code</code>, a <a href="#the-chain-at-a-glance">link within the page</a>, a <a href="https://example.org/reference/about"><code>code link</code></a>, H<sub>2</sub>O and E = mc<sup>2</sup>, and a second footnote.<sup class="footnote-ref"><a href="#fn-2" id="fnref-2" data-footnote-ref>2</a></sup> Press <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>P</kbd> to open the palette.</p>
+
+<dl>
+  <dt>Pin</dt>
+  <dd>The exact version a role installs. Changing it is the only way a deploy changes what runs.</dd>
+  <dt>Dry run</dt>
+  <dd>An Ansible check-mode pass. It proves the play parses and shows what would change; it does not prove the change works.</dd>
+  <dt>Loopback backend</dt>
+  <dd>A service listening on <code>127.0.0.1</code> only, reachable from the outside solely through HAProxy.</dd>
+</dl>
+
+<details>
+  <summary>Why three repositories and not one</summary>
+  <p>Version bumps and configuration tweaks would otherwise churn the edge repository. Frontend rules stay with the proxy; backend definitions live as fragments beside the service's role.</p>
+</details>
+
+<p><img alt="Request path: client to HAProxy to loopback backend" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1400 360' width='1400' height='360'%3E%3Crect width='1400' height='360' fill='%23445'/%3E%3Cg fill='none' stroke='%23cfd6f5' stroke-width='3'%3E%3Crect x='80' y='120' width='280' height='120' rx='10'/%3E%3Crect x='560' y='120' width='280' height='120' rx='10'/%3E%3Crect x='1040' y='120' width='280' height='120' rx='10'/%3E%3Cpath d='M360 180H560M840 180H1040'/%3E%3C/g%3E%3Cg fill='%23f0f3fc' font-family='-apple-system,sans-serif' font-size='30' text-anchor='middle'%3E%3Ctext x='220' y='190'%3Eclient%3C/text%3E%3Ctext x='700' y='190'%3EHAProxy :443%3C/text%3E%3Ctext x='1180' y='190'%3E127.0.0.1:8087%3C/text%3E%3C/g%3E%3C/svg%3E"></p>
+
+<hr>
+
+<p>Last reviewed against a live deploy on 2026-10-04.</p>
+
+<section class="footnotes" data-footnotes>
+  <ol>
+    <li id="fn-1">
+      <p>The stale-pin no-op: the role reinstalls the version it was already pinned to and Ansible reports success, because nothing failed. <a href="#fnref-1" class="footnote-backref" data-footnote-backref data-footnote-backref-idx="1" aria-label="Back to reference 1">↩</a></p>
+    </li>
+    <li id="fn-2">
+      <p>Footnotes are set smaller and quieter than the body, and the one you jumped to is marked. <a href="#fnref-2" class="footnote-backref" data-footnote-backref data-footnote-backref-idx="2" aria-label="Back to reference 2">↩</a></p>
+    </li>
+  </ol>
+</section>
+
+</article>
+
+<nav class="fixture-switcher" aria-label="Fixture controls">
+  <label>Theme
+    <select id="fixture-theme-select">
+      <option value="gloss-dark">Gloss Dark</option>
+      <option value="gloss-light">Gloss Light</option>
+      <option value="longform">Longform</option>
+      <option value="none">None (base only)</option>
+    </select>
+  </label>
+  <label>Appearance
+    <select id="fixture-appearance-select">
+      <option value="dark">dark</option>
+      <option value="light">light</option>
+    </select>
+  </label>
+</nav>
+<script>
+  (function () {
+    var themes = {
+      'gloss-dark': { id: 'io.sigler.webby.gloss.dark', dir: 'gloss-dark.glossbundle', appearances: ['dark'] },
+      'gloss-light': { id: 'io.sigler.webby.gloss.light', dir: 'gloss-light.glossbundle', appearances: ['light'] },
+      'longform': { id: 'io.sigler.webby.gloss.longform', dir: 'longform.glossbundle', appearances: ['light', 'dark'] },
+      'none': { id: '', dir: null, appearances: ['light', 'dark'] }
+    };
+    var root = document.documentElement;
+    var link = document.getElementById('fixture-theme');
+    var themeSelect = document.getElementById('fixture-theme-select');
+    var appearanceSelect = document.getElementById('fixture-appearance-select');
+    var params = new URLSearchParams(location.search);
+
+    function apply(name, appearance) {
+      var theme = themes[name] || themes['gloss-dark'];
+      // The app only ever shows a theme in an appearance it declares.
+      if (theme.appearances.indexOf(appearance) < 0) appearance = theme.appearances[0];
+      link.disabled = !theme.dir;
+      if (theme.dir) link.href = '../../App/Bundles/' + theme.dir + '/theme.css';
+      root.dataset.appearance = appearance;
+      root.dataset.theme = theme.id;
+      themeSelect.value = themes[name] ? name : 'gloss-dark';
+      appearanceSelect.value = appearance;
+      Array.prototype.forEach.call(appearanceSelect.options, function (o) {
+        o.disabled = theme.appearances.indexOf(o.value) < 0;
+      });
+    }
+
+    themeSelect.addEventListener('change', function () { apply(themeSelect.value, appearanceSelect.value); });
+    appearanceSelect.addEventListener('change', function () { apply(themeSelect.value, appearanceSelect.value); });
+    if (params.get('chrome') === '0') document.querySelector('.fixture-switcher').style.display = 'none';
+    apply(params.get('theme') || 'gloss-dark', params.get('appearance') || 'dark');
+  })();
+</script>
+</body>
+</html>

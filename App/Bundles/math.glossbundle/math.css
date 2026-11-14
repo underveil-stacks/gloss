@@ -1,0 +1,11 @@
+.gloss-math-block {
+  margin: 1.25em 0;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.gloss-math-error {
+  color: var(--gloss-alert-caution, inherit);
+  font-family: var(--gloss-font-mono, monospace);
+  font-size: 0.85em;
+}

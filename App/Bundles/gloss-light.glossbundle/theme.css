@@ -1,0 +1,50 @@
+/* Gloss Light: the light companion to Gloss Dark. The same hues at the same
+   jobs (blue links, pink accent, purple keywords, green strings, cyan types),
+   darkened for a cool near-white ground. Tokens only. Contrast ratios for
+   every value are in docs/design/themes.md. */
+
+:root {
+  /* Ground */
+  --gloss-bg: #f9fafe;
+  --gloss-surface: #edf0f8;
+  --gloss-surface-raised: #e2e6f3;
+  --gloss-border: #ccd0e2;
+
+  /* Text */
+  --gloss-text: #252a3d;
+  --gloss-text-muted: #555d75;
+  --gloss-heading: #101428;
+  --gloss-link: #154fc3;
+  --gloss-link-hover: #0f2e94;
+  --gloss-accent: #bd1478;
+  --gloss-selection: #e3d7fb;
+
+  /* Syntax */
+  --gloss-code-text: #252a3d;
+  --gloss-code-comment: #565d72;
+  --gloss-code-keyword: #7522b3;
+  --gloss-code-string: #00663a;
+  --gloss-code-number: #b2006f;
+  --gloss-code-function: #004cbb;
+  --gloss-code-type: #006174;
+  --gloss-code-variable: #48408b;
+  --gloss-code-meta: #2f617d;
+  --gloss-code-addition: #006328;
+  --gloss-code-deletion: #aa0061;
+
+  /* Alerts */
+  --gloss-alert-note: #154fc3;
+  --gloss-alert-tip: #00663a;
+  --gloss-alert-important: #7522b3;
+  --gloss-alert-warning: #006174;
+  --gloss-alert-caution: #b70069;
+
+  /* Type and shape */
+  --gloss-font-body: -apple-system, BlinkMacSystemFont, system-ui, "Helvetica Neue", sans-serif;
+  --gloss-font-heading: -apple-system, BlinkMacSystemFont, system-ui, "Helvetica Neue", sans-serif;
+  --gloss-font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, monospace;
+  --gloss-font-size: 16px;
+  --gloss-line-height: 1.6;
+  --gloss-measure: 40rem;
+  --gloss-radius: 8px;
+}

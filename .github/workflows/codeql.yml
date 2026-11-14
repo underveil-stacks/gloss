@@ -1,0 +1,50 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "41 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    # Code scanning is free for public repositories only, so this does nothing
+    # while the repository is private.
+    if: github.event.repository.visibility == 'public'
+    permissions:
+      security-events: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The page's own scripts and the add-on loaders.
+          - language: javascript-typescript
+            os: ubuntu-latest
+            build-mode: none
+          # The render core. The app itself needs a newer SDK than hosted
+          # runners carry, so it is not analysed here.
+          - language: swift
+            os: macos-latest
+            build-mode: manual
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          config: |
+            paths-ignore:
+              - App/Resources/vendor
+              - "App/Bundles/**/*.min.js"
+              - third-party
+      - if: matrix.language == 'swift'
+        run: swift build --package-path Packages/GlossCore
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}

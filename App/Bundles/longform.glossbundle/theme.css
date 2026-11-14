@@ -1,0 +1,134 @@
+/* Longform: for documents that are mostly prose. A serif body at a larger
+   size, a narrower measure and more leading, on a paper ground in light and a
+   charcoal one in dark. Contrast ratios for every value are in
+   docs/design/themes.md. */
+
+:root {
+  /* ui-serif is New York in WebKit; the named faces are for other engines. */
+  --gloss-font-body: ui-serif, "New York", "Iowan Old Style", Charter, Georgia, serif;
+  --gloss-font-heading: ui-serif, "New York", "Iowan Old Style", Charter, Georgia, serif;
+  --gloss-font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, monospace;
+  --gloss-font-size: 18px;
+  --gloss-line-height: 1.7;
+  --gloss-measure: 32rem;
+  --gloss-radius: 4px;
+}
+
+html[data-appearance="light"] {
+  /* Ground */
+  --gloss-bg: #f9f6f0;
+  --gloss-surface: #f0ece4;
+  --gloss-surface-raised: #e7e2d8;
+  --gloss-border: #d4cdc1;
+
+  /* Text */
+  --gloss-text: #2b2521;
+  --gloss-text-muted: #615952;
+  --gloss-heading: #1a1511;
+  --gloss-link: #005a5f;
+  --gloss-link-hover: #003d45;
+  --gloss-accent: #892f59;
+  --gloss-selection: #c0e7e8;
+
+  /* Syntax */
+  --gloss-code-text: #302a25;
+  --gloss-code-comment: #635c55;
+  --gloss-code-keyword: #862c56;
+  --gloss-code-string: #255d34;
+  --gloss-code-number: #62488c;
+  --gloss-code-function: #0b517f;
+  --gloss-code-type: #005a5f;
+  --gloss-code-variable: #3e4058;
+  --gloss-code-meta: #4f606d;
+  --gloss-code-addition: #1c5f31;
+  --gloss-code-deletion: #9d2a3f;
+
+  /* Alerts */
+  --gloss-alert-note: #0b517f;
+  --gloss-alert-tip: #255d34;
+  --gloss-alert-important: #62488c;
+  --gloss-alert-warning: #7e4f04;
+  --gloss-alert-caution: #9e2c2c;
+}
+
+html[data-appearance="dark"] {
+  /* Ground */
+  --gloss-bg: #181512;
+  --gloss-surface: #211d1a;
+  --gloss-surface-raised: #2c2824;
+  --gloss-border: #413c36;
+
+  /* Text */
+  --gloss-text: #d6d0c5;
+  --gloss-text-muted: #aaa49a;
+  --gloss-heading: #efebe1;
+  --gloss-link: #82cdcd;
+  --gloss-link-hover: #ade8e7;
+  --gloss-accent: #e496b4;
+  --gloss-selection: #15383a;
+
+  /* Syntax */
+  --gloss-code-text: #d6d0c5;
+  --gloss-code-comment: #a49e94;
+  --gloss-code-keyword: #eb9dbb;
+  --gloss-code-string: #94cf9f;
+  --gloss-code-number: #c0abe9;
+  --gloss-code-function: #8fc1eb;
+  --gloss-code-type: #82cdcd;
+  --gloss-code-variable: #c5c9e2;
+  --gloss-code-meta: #94a8b6;
+  --gloss-code-addition: #89d298;
+  --gloss-code-deletion: #f18790;
+
+  /* Alerts */
+  --gloss-alert-note: #8fc1eb;
+  --gloss-alert-tip: #94cf9f;
+  --gloss-alert-important: #c0abe9;
+  --gloss-alert-warning: #e6bd77;
+  --gloss-alert-caution: #f28881;
+}
+
+/* Beyond the tokens: what a serif page needs that a token cannot say. */
+
+/* A serif heading carries at a lighter weight than the system sans, and the
+   chapter rule under h2 gives way to white space. */
+.markdown-body :is(h1, h2, h3, h4, h5, h6) {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.markdown-body h1 {
+  font-size: 2.1rem;
+  letter-spacing: -0.018em;
+}
+
+.markdown-body h2 {
+  margin-block-start: 2.2em;
+  padding-block-end: 0;
+  border-block-end: 0;
+}
+
+/* Quotations read as quoted speech: italic, in the text colour. */
+.markdown-body blockquote {
+  font-style: italic;
+  color: var(--gloss-text);
+}
+
+.markdown-body blockquote :is(em, cite) {
+  font-style: normal;
+}
+
+/* The mono face is larger on the body than a serif at the same size. */
+.markdown-body :not(pre) > :is(code, samp) {
+  font-size: 0.82em;
+}
+
+.markdown-body pre {
+  font-size: 0.8rem;
+}
+
+/* Tables are reference matter; set them in the sans so they stay compact. */
+.markdown-body table {
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, "Helvetica Neue", sans-serif;
+  font-size: 0.83rem;
+}

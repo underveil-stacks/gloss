@@ -1,0 +1,224 @@
+/* Gloss default print stylesheet. Linked with media="print", after the base
+   stylesheet and the theme, unless a theme supplies printStyles of its own.
+   Paper is white and ink is black whatever theme is on screen. */
+
+@page {
+  margin: 18mm 16mm 20mm;
+}
+
+/* Every !important in this file is here for one reason: print has to win over
+   a theme it has never seen. A theme may set tokens from a selector of any
+   specificity (Longform keys them off html[data-appearance]), and the order
+   the two files load in is the app's business. Resetting the tokens with
+   !important is the one way to be sure of black on white; the rules below then
+   need none, because they only read the tokens. */
+html,
+html[data-appearance] {
+  --gloss-bg: #fff !important;
+  --gloss-surface: #fff !important;
+  --gloss-surface-raised: #fff !important;
+  --gloss-border: #999 !important;
+  --gloss-text: #000 !important;
+  --gloss-text-muted: #444 !important;
+  --gloss-heading: #000 !important;
+  --gloss-link: #000 !important;
+  --gloss-link-hover: #000 !important;
+  --gloss-accent: #000 !important;
+  --gloss-selection: transparent !important;
+  --gloss-font-size: 11pt !important;
+  --gloss-line-height: 1.45 !important;
+  --gloss-measure: none !important;
+  --gloss-radius: 0 !important;
+
+  /* Syntax falls back to weight and slant; see below. */
+  --gloss-code-text: #000 !important;
+  --gloss-code-comment: #555 !important;
+  --gloss-code-keyword: #000 !important;
+  --gloss-code-string: #333 !important;
+  --gloss-code-number: #000 !important;
+  --gloss-code-function: #000 !important;
+  --gloss-code-type: #000 !important;
+  --gloss-code-variable: #000 !important;
+  --gloss-code-meta: #555 !important;
+  --gloss-code-addition: #000 !important;
+  --gloss-code-deletion: #000 !important;
+
+  --gloss-alert-note: #000 !important;
+  --gloss-alert-tip: #000 !important;
+  --gloss-alert-important: #000 !important;
+  --gloss-alert-warning: #000 !important;
+  --gloss-alert-caution: #000 !important;
+
+  color-scheme: light !important;
+}
+
+html,
+body {
+  background: #fff;
+}
+
+html {
+  -webkit-font-smoothing: auto;
+  -webkit-print-color-adjust: economy;
+  print-color-adjust: economy;
+}
+
+/* The page margins are the gutter on paper. */
+.gloss-frontmatter,
+.markdown-body {
+  max-inline-size: none;
+  padding: 0;
+}
+
+.gloss-frontmatter {
+  margin-block-end: 1.5rem;
+}
+
+.markdown-body {
+  orphans: 3;
+  widows: 3;
+}
+
+/* Headings stay with what they introduce. */
+.markdown-body :is(h1, h2, h3, h4, h5, h6) {
+  break-after: avoid;
+  break-inside: avoid;
+}
+
+/* A link is no use on paper without its address. In-page links and footnote
+   marks are left alone. */
+.markdown-body a {
+  text-decoration-color: currentColor;
+}
+
+.markdown-body a[href]:not([href^="#"], [data-footnote-ref], [data-footnote-backref])::after {
+  content: " (" attr(href) ")";
+  font-size: 0.85em;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+/* The return arrow leads nowhere on paper. */
+.markdown-body :is(.footnote-backref, a[data-footnote-backref]) {
+  display: none;
+}
+
+/* Code wraps: paper cannot scroll. */
+.markdown-body pre {
+  overflow: visible;
+  background: none;
+  border-color: #999;
+  font-size: 9pt;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  break-inside: avoid;
+}
+
+.markdown-body pre > code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.markdown-body :not(pre) > :is(code, samp) {
+  padding: 0;
+  background: none;
+}
+
+/* Without colour, structure is carried by weight and slant. */
+.markdown-body :is(.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-title, .hljs-section) {
+  font-weight: 650;
+}
+
+.markdown-body :is(.hljs-comment, .hljs-quote) {
+  font-style: italic;
+}
+
+.markdown-body :is(.hljs-addition, .hljs-deletion) {
+  background: none;
+}
+
+.markdown-body .hljs-deletion {
+  text-decoration: line-through;
+}
+
+/* Tables go back to real table layout so they fill the page, wrap their
+   cells and repeat their header row on each sheet. */
+.markdown-body table {
+  display: table;
+  inline-size: 100%;
+  overflow: visible;
+  background: none;
+  border: 0;
+  font-size: 9pt;
+}
+
+/* Body cells may break anywhere so nine columns still fit a sheet; header
+   cells keep their words whole and so set a floor for each column. */
+.markdown-body td {
+  inline-size: auto;
+  max-inline-size: none;
+  overflow-wrap: anywhere;
+}
+
+.markdown-body thead {
+  display: table-header-group;
+}
+
+.markdown-body tr {
+  break-inside: avoid;
+}
+
+.markdown-body :is(th, td) {
+  border: 1px solid #999;
+}
+
+.markdown-body tbody > tr:last-child > td {
+  border-block-end: 1px solid #999;
+}
+
+.markdown-body th {
+  background: none;
+  white-space: normal;
+}
+
+.markdown-body td code {
+  overflow-wrap: anywhere;
+}
+
+/* Alerts and quotes keep their outline and lose their fill. */
+.markdown-body .markdown-alert {
+  background: none;
+  border-color: #999;
+  break-inside: avoid;
+}
+
+.markdown-body blockquote {
+  border-inline-start-color: #999;
+  break-inside: avoid;
+}
+
+.markdown-body :is(img, figure) {
+  break-inside: avoid;
+}
+
+.markdown-body kbd {
+  background: none;
+}
+
+/* The tick is drawn in the page colour, so an ink-saving print that drops
+   backgrounds would lose it. Keep this one small fill. */
+.markdown-body .task-list-item input[type="checkbox"] {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* Closed disclosures are printed open; paper cannot be clicked. */
+.markdown-body details::details-content {
+  content-visibility: visible;
+  display: block;
+}
+
+.markdown-body .footnotes li:target {
+  background: none;
+  box-shadow: none;
+}

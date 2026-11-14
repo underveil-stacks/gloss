@@ -1,0 +1,13 @@
+# Secret scanning rules: the defaults, minus third-party minified libraries.
+[extend]
+useDefault = true
+
+# These files are copied unmodified from published packages, and CI checks
+# that they still match. Minified code regularly looks like a key to a
+# pattern matcher.
+[[allowlists]]
+description = "Vendored third-party minified libraries"
+paths = [
+  '''^App/Bundles/.*\.min\.(js|css)$''',
+  '''^App/Resources/vendor/.*\.min\.js$''',
+]

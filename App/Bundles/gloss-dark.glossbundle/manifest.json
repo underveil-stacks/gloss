@@ -1,0 +1,15 @@
+{
+  "contract": 1,
+  "id": "io.sigler.webby.gloss.dark",
+  "name": "Gloss Dark",
+  "author": "Gloss",
+  "version": "1.0.0",
+  "kind": "theme",
+  "appearances": [
+    "dark"
+  ],
+  "styles": [
+    "theme.css"
+  ],
+  "scripts": []
+}

@@ -1,0 +1,50 @@
+/* Gloss Dark: the default theme. Ink-blue ground, cool hues only: blue for
+   links, pink for the accent, purple, green and cyan in code and alerts.
+   Tokens only; the base stylesheet does the rest. Contrast ratios for every
+   value are in docs/design/themes.md. */
+
+:root {
+  /* Ground */
+  --gloss-bg: #101422;
+  --gloss-surface: #181c2d;
+  --gloss-surface-raised: #23283c;
+  --gloss-border: #383e58;
+
+  /* Text */
+  --gloss-text: #d4d9e8;
+  --gloss-text-muted: #a0a8c3;
+  --gloss-heading: #f0f3fc;
+  --gloss-link: #80bcff;
+  --gloss-link-hover: #a1dcff;
+  --gloss-accent: #fa8ac2;
+  --gloss-selection: #3e275e;
+
+  /* Syntax */
+  --gloss-code-text: #d4d9e8;
+  --gloss-code-comment: #99a2c0;
+  --gloss-code-keyword: #c99cfc;
+  --gloss-code-string: #72e5b0;
+  --gloss-code-number: #fc9ac9;
+  --gloss-code-function: #80c0ff;
+  --gloss-code-type: #79dde8;
+  --gloss-code-variable: #c8c4f6;
+  --gloss-code-meta: #7dbbd7;
+  --gloss-code-addition: #76e699;
+  --gloss-code-deletion: #ff7fbc;
+
+  /* Alerts */
+  --gloss-alert-note: #80bcff;
+  --gloss-alert-tip: #65e0a5;
+  --gloss-alert-important: #c99cfc;
+  --gloss-alert-warning: #6cdeeb;
+  --gloss-alert-caution: #ff7fbc;
+
+  /* Type and shape */
+  --gloss-font-body: -apple-system, BlinkMacSystemFont, system-ui, "Helvetica Neue", sans-serif;
+  --gloss-font-heading: -apple-system, BlinkMacSystemFont, system-ui, "Helvetica Neue", sans-serif;
+  --gloss-font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, monospace;
+  --gloss-font-size: 16px;
+  --gloss-line-height: 1.6;
+  --gloss-measure: 40rem;
+  --gloss-radius: 8px;
+}

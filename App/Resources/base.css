@@ -1,0 +1,979 @@
+/* Gloss base stylesheet. Loaded first on every page; lays out every element
+   of the page structure in docs/bundles.md using only the --gloss-* tokens.
+   A theme is expected to be little more than token assignments. */
+
+/* ---------------------------------------------------------------------------
+   Token defaults
+
+   Declared inside :where() so they carry no specificity: the smallest theme in
+   the contract, a single `:root { … }` rule, must beat them in both
+   appearances. Everything a theme is likely to leave out is derived from the
+   few tokens it is likely to set (bg, text, link, accent), so a three-token
+   theme still gets coherent surfaces, borders and muted text.
+   ------------------------------------------------------------------------ */
+
+:where(html) {
+  --gloss-bg: #ffffff;
+  --gloss-text: #1f2430;
+  --gloss-link: #1552c4;
+
+  --gloss-surface: color-mix(in srgb, var(--gloss-text) 5%, var(--gloss-bg));
+  --gloss-surface-raised: color-mix(in srgb, var(--gloss-text) 10%, var(--gloss-bg));
+  --gloss-border: color-mix(in srgb, var(--gloss-text) 20%, var(--gloss-bg));
+  --gloss-text-muted: color-mix(in srgb, var(--gloss-text) 70%, var(--gloss-bg));
+  --gloss-heading: var(--gloss-text);
+  --gloss-link-hover: color-mix(in srgb, var(--gloss-link) 70%, var(--gloss-text));
+  --gloss-accent: var(--gloss-link);
+  --gloss-selection: color-mix(in srgb, var(--gloss-accent) 22%, var(--gloss-bg));
+
+  --gloss-font-body: -apple-system, BlinkMacSystemFont, system-ui, "Helvetica Neue", sans-serif;
+  --gloss-font-heading: var(--gloss-font-body);
+  --gloss-font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, monospace;
+  --gloss-font-size: 16px;
+  --gloss-line-height: 1.6;
+  --gloss-measure: 40rem;
+  --gloss-radius: 8px;
+
+  /* Syntax and alert hues are pulled a third of the way toward the text colour
+     so they sit with whatever ground a partial theme supplies. */
+  --gloss-code-text: var(--gloss-text);
+  --gloss-code-comment: var(--gloss-text-muted);
+  --gloss-code-keyword: color-mix(in srgb, #7522b3 68%, var(--gloss-text));
+  --gloss-code-string: color-mix(in srgb, #00663a 68%, var(--gloss-text));
+  --gloss-code-number: color-mix(in srgb, #b2006f 68%, var(--gloss-text));
+  --gloss-code-function: color-mix(in srgb, #004cbb 68%, var(--gloss-text));
+  --gloss-code-type: color-mix(in srgb, #006174 68%, var(--gloss-text));
+  --gloss-code-variable: color-mix(in srgb, #48408b 68%, var(--gloss-text));
+  --gloss-code-meta: color-mix(in srgb, #2f617d 68%, var(--gloss-text));
+  --gloss-code-addition: color-mix(in srgb, #006328 68%, var(--gloss-text));
+  --gloss-code-deletion: color-mix(in srgb, #aa0061 68%, var(--gloss-text));
+
+  --gloss-alert-note: color-mix(in srgb, #154fc3 68%, var(--gloss-text));
+  --gloss-alert-tip: color-mix(in srgb, #00663a 68%, var(--gloss-text));
+  --gloss-alert-important: color-mix(in srgb, #7522b3 68%, var(--gloss-text));
+  --gloss-alert-warning: color-mix(in srgb, #7a4d00 68%, var(--gloss-text));
+  --gloss-alert-caution: color-mix(in srgb, #a8232b 68%, var(--gloss-text));
+}
+
+:where(html[data-appearance="dark"]) {
+  --gloss-bg: #15171c;
+  --gloss-text: #d8dbe2;
+  --gloss-link: #8ab8ff;
+
+  --gloss-code-keyword: color-mix(in srgb, #c99cfc 68%, var(--gloss-text));
+  --gloss-code-string: color-mix(in srgb, #72e5b0 68%, var(--gloss-text));
+  --gloss-code-number: color-mix(in srgb, #fc9ac9 68%, var(--gloss-text));
+  --gloss-code-function: color-mix(in srgb, #80c0ff 68%, var(--gloss-text));
+  --gloss-code-type: color-mix(in srgb, #79dde8 68%, var(--gloss-text));
+  --gloss-code-variable: color-mix(in srgb, #c8c4f6 68%, var(--gloss-text));
+  --gloss-code-meta: color-mix(in srgb, #7dbbd7 68%, var(--gloss-text));
+  --gloss-code-addition: color-mix(in srgb, #76e699 68%, var(--gloss-text));
+  --gloss-code-deletion: color-mix(in srgb, #ff7fbc 68%, var(--gloss-text));
+
+  --gloss-alert-note: color-mix(in srgb, #80bcff 68%, var(--gloss-text));
+  --gloss-alert-tip: color-mix(in srgb, #65e0a5 68%, var(--gloss-text));
+  --gloss-alert-important: color-mix(in srgb, #c99cfc 68%, var(--gloss-text));
+  --gloss-alert-warning: color-mix(in srgb, #e6bd77 68%, var(--gloss-text));
+  --gloss-alert-caution: color-mix(in srgb, #f28881 68%, var(--gloss-text));
+}
+
+/* ---------------------------------------------------------------------------
+   Page
+   ------------------------------------------------------------------------ */
+
+html {
+  /* The base size lives on the root so that rem, and with it the measure and
+     every block margin, scales with the theme's font size. */
+  font-size: var(--gloss-font-size);
+  color-scheme: light;
+  background: var(--gloss-bg);
+  scrollbar-color: var(--gloss-border) transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* color-scheme follows the attribute the app sets, never the system setting,
+   so native scrollbars and form controls match the page being shown. */
+html[data-appearance="dark"] {
+  color-scheme: dark;
+  /* Light text on a dark ground blooms under WebKit's default smoothing. */
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: var(--gloss-bg);
+  color: var(--gloss-text);
+  font-family: var(--gloss-font-body);
+  line-height: var(--gloss-line-height);
+  font-kerning: normal;
+  font-optical-sizing: auto;
+}
+
+/* The front matter and the article share one column. content-box keeps
+   --gloss-measure the width of the text itself, whatever the gutter. */
+.gloss-frontmatter,
+.markdown-body {
+  box-sizing: content-box;
+  max-inline-size: var(--gloss-measure);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 5vw, 3rem);
+}
+
+/* The reader's choice outranks the theme's measure, wherever the theme set it. */
+html[data-width="window"] {
+  --gloss-measure: none !important;
+}
+
+.markdown-body {
+  padding-block: 2.75rem 5rem;
+  overflow-wrap: break-word;
+}
+
+.gloss-frontmatter {
+  padding-block-start: 2rem;
+}
+
+.gloss-frontmatter + .markdown-body {
+  padding-block-start: 2rem;
+}
+
+::selection {
+  /* Only the background: syntax and link colours stay legible in a selection,
+     and themes pick --gloss-selection to keep 4.5:1 under all of them. */
+  background: var(--gloss-selection);
+}
+
+:focus-visible {
+  outline: 2px solid var(--gloss-accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+:target {
+  scroll-margin-block-start: 1.5rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Front matter
+   ------------------------------------------------------------------------ */
+
+.gloss-frontmatter dl {
+  display: grid;
+  grid-template-columns: fit-content(40%) minmax(0, 1fr);
+  gap: 0.3rem 1.25rem;
+  margin: 0;
+  padding: 0.8rem 1rem;
+  background: var(--gloss-surface);
+  border: 1px solid var(--gloss-border);
+  border-radius: var(--gloss-radius);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.gloss-frontmatter dt {
+  font-family: var(--gloss-font-mono);
+  font-size: 0.9286em;
+  color: var(--gloss-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.gloss-frontmatter dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------------------
+   Flow
+
+   Block spacing is in rem so a code block or table, whose own font size is
+   smaller, keeps the same rhythm as the paragraphs around it.
+   ------------------------------------------------------------------------ */
+
+.markdown-body {
+  :is(p, ul, ol, dl, blockquote, pre, table, figure, details, .markdown-alert) {
+    margin-block: 0 1.1rem;
+  }
+
+  > :first-child {
+    margin-block-start: 0;
+  }
+
+  > :last-child {
+    margin-block-end: 0;
+  }
+
+  & p {
+    text-wrap: pretty;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Headings
+
+   A 1.2 scale on fixed steps. More space above than below ties a heading to
+   the section it opens.
+   ------------------------------------------------------------------------ */
+
+.markdown-body {
+  :is(h1, h2, h3, h4, h5, h6) {
+    margin-block: 1.8em 0.55em;
+    font-family: var(--gloss-font-heading);
+    font-weight: 650;
+    line-height: 1.25;
+    color: var(--gloss-heading);
+    text-wrap: balance;
+  }
+
+  & h1 {
+    margin-block: 1.4em 0.6em;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.022em;
+  }
+
+  & h2 {
+    margin-block: 2em 0.7em;
+    padding-block-end: 0.3em;
+    border-block-end: 1px solid var(--gloss-border);
+    font-size: 1.5rem;
+    letter-spacing: -0.017em;
+  }
+
+  & h3 {
+    font-size: 1.25rem;
+    letter-spacing: -0.011em;
+  }
+
+  & h4 {
+    font-size: 1.0625rem;
+  }
+
+  & h5 {
+    font-size: 1rem;
+  }
+
+  & h6 {
+    font-size: 0.875rem;
+    color: var(--gloss-text-muted);
+  }
+
+  /* A heading directly under another belongs to it. */
+  :is(h1, h2, h3, h4, h5, h6) + :is(h2, h3, h4, h5, h6) {
+    margin-block-start: 0.9em;
+  }
+
+  /* Repeated so it outranks the heading rules above. */
+  > :is(h1, h2, h3, h4, h5, h6):first-child {
+    margin-block-start: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Inline text
+   ------------------------------------------------------------------------ */
+
+.markdown-body {
+  & a {
+    color: var(--gloss-link);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+    text-underline-offset: 0.2em;
+    transition: color 120ms ease-out, text-decoration-color 120ms ease-out;
+  }
+
+  /* Hover and focus change the underline's weight as well as the colour, so
+     the state does not depend on telling two hues apart. */
+  & a:hover,
+  & a:focus-visible {
+    color: var(--gloss-link-hover);
+    text-decoration-thickness: 2px;
+    text-decoration-color: currentColor;
+  }
+
+  & strong,
+  & b {
+    font-weight: 650;
+  }
+
+  & del,
+  & s {
+    color: var(--gloss-text-muted);
+    text-decoration-thickness: 1px;
+  }
+
+  & mark {
+    background: color-mix(in srgb, var(--gloss-accent) 24%, transparent);
+    color: inherit;
+    border-radius: 2px;
+  }
+
+  & abbr[title] {
+    text-decoration: underline dotted;
+    text-underline-offset: 0.2em;
+    cursor: help;
+  }
+
+  /* Keep raised and lowered text from pushing its line apart. */
+  & sub,
+  & sup {
+    position: relative;
+    font-size: 0.75em;
+    line-height: 0;
+    vertical-align: baseline;
+  }
+
+  & sup {
+    inset-block-start: -0.5em;
+  }
+
+  & sub {
+    inset-block-end: -0.25em;
+  }
+
+  & kbd {
+    padding: 0.1em 0.42em;
+    background: var(--gloss-surface);
+    border: 1px solid var(--gloss-border);
+    border-block-end-width: 2px;
+    border-radius: min(var(--gloss-radius), 0.35em);
+    font-family: var(--gloss-font-mono);
+    font-size: 0.8em;
+    color: var(--gloss-text);
+    white-space: nowrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .markdown-body a {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Code
+   ------------------------------------------------------------------------ */
+
+.markdown-body {
+  :is(code, samp) {
+    font-family: var(--gloss-font-mono);
+    font-size: 0.875em;
+    font-variant-ligatures: none;
+  }
+
+  :not(pre) > :is(code, samp) {
+    padding: 0.12em 0.36em;
+    background: var(--gloss-surface-raised);
+    border-radius: min(var(--gloss-radius), 0.32em);
+    color: var(--gloss-code-text);
+    /* A long path or flag wraps instead of pushing the page sideways. */
+    overflow-wrap: anywhere;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  & a > code {
+    color: inherit;
+  }
+
+  :is(h1, h2, h3, h4, h5, h6) > code {
+    font-size: 0.9em;
+  }
+
+  & pre {
+    padding: 0.9rem 1rem;
+    overflow-x: auto;
+    border: 1px solid var(--gloss-border);
+    border-radius: var(--gloss-radius);
+    font-family: var(--gloss-font-mono);
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: var(--gloss-code-text);
+    tab-size: 4;
+    overflow-wrap: normal;
+    /* Edge shading that shows only where a long line is scrolled out of view:
+       the two `local` covers travel with the content and hide the two `scroll`
+       shades once that edge is reached. */
+    background:
+      linear-gradient(to right, var(--gloss-surface) 35%, transparent) left center / 2.5rem 100% no-repeat local,
+      linear-gradient(to left, var(--gloss-surface) 35%, transparent) right center / 2.5rem 100% no-repeat local,
+      linear-gradient(to right, color-mix(in srgb, var(--gloss-text) 16%, transparent), transparent) left center / 0.9rem 100% no-repeat scroll,
+      linear-gradient(to left, color-mix(in srgb, var(--gloss-text) 16%, transparent), transparent) right center / 0.9rem 100% no-repeat scroll,
+      var(--gloss-surface);
+  }
+
+  & pre > code {
+    padding: 0;
+    background: none;
+    font-size: 1em;
+    white-space: pre;
+  }
+
+  /* highlight.js classes, grouped as in the token table. */
+  :is(.hljs-comment, .hljs-quote) {
+    color: var(--gloss-code-comment);
+  }
+
+  :is(.hljs-keyword, .hljs-selector-tag, .hljs-literal) {
+    color: var(--gloss-code-keyword);
+  }
+
+  :is(.hljs-string, .hljs-regexp) {
+    color: var(--gloss-code-string);
+  }
+
+  :is(.hljs-number, .hljs-symbol) {
+    color: var(--gloss-code-number);
+  }
+
+  :is(.hljs-title, .hljs-function, .hljs-section) {
+    color: var(--gloss-code-function);
+  }
+
+  :is(.hljs-type, .hljs-built_in, .hljs-class) {
+    color: var(--gloss-code-type);
+  }
+
+  :is(.hljs-variable, .hljs-attr, .hljs-attribute, .hljs-property) {
+    color: var(--gloss-code-variable);
+  }
+
+  :is(.hljs-meta, .hljs-tag, .hljs-name) {
+    color: var(--gloss-code-meta);
+  }
+
+  /* Diff lines get a wash of their own colour as well as the colour itself. */
+  .hljs-addition {
+    color: var(--gloss-code-addition);
+    background: color-mix(in srgb, var(--gloss-code-addition) 12%, transparent);
+  }
+
+  .hljs-deletion {
+    color: var(--gloss-code-deletion);
+    background: color-mix(in srgb, var(--gloss-code-deletion) 12%, transparent);
+  }
+
+  /* Classes highlight.js emits that the token table does not name, mapped to
+     the nearest token so they are not left as plain text. */
+  :is(.hljs-doctag, .hljs-operator) {
+    color: var(--gloss-code-keyword);
+  }
+
+  :is(.hljs-selector-class, .hljs-selector-id) {
+    color: var(--gloss-code-function);
+  }
+
+  :is(.hljs-template-variable, .hljs-selector-attr, .hljs-selector-pseudo, .hljs-params) {
+    color: var(--gloss-code-variable);
+  }
+
+  .hljs-bullet {
+    color: var(--gloss-code-number);
+  }
+
+  .hljs-link {
+    color: var(--gloss-code-string);
+    text-decoration: underline;
+  }
+
+  /* Inside a function or class span, only the name takes the colour. */
+  :is(.hljs-function, .hljs-class) > :is(.hljs-params, .hljs-punctuation) {
+    color: var(--gloss-code-text);
+  }
+
+  .hljs-emphasis {
+    font-style: italic;
+  }
+
+  .hljs-strong {
+    font-weight: 650;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Quotes and alerts
+   ------------------------------------------------------------------------ */
+
+.markdown-body {
+  & blockquote {
+    margin-inline: 0;
+    padding-block: 0.1em;
+    padding-inline: 1.1em 0;
+    border-inline-start: 3px solid var(--gloss-accent);
+    color: var(--gloss-text-muted);
+  }
+
+  & blockquote > :last-child,
+  .markdown-alert > :last-child {
+    margin-block-end: 0;
+  }
+
+  /* An alert is a tinted panel, told apart by its title, the title's colour
+     and the shape beside it, so the kind never rests on colour alone. */
+  .markdown-alert {
+    padding: 0.8rem 1rem 0.85rem;
+    border: 1px solid var(--gloss-border);
+    border-radius: var(--gloss-radius);
+  }
+
+  .markdown-alert-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-block-end: 0.3rem;
+    font-size: 0.9375em;
+    font-weight: 650;
+    line-height: 1.4;
+  }
+
+  .markdown-alert-title::before {
+    content: "";
+    flex: none;
+    inline-size: 0.72em;
+    block-size: 0.72em;
+    background: currentColor;
+  }
+
+  .markdown-alert-note {
+    background: color-mix(in srgb, var(--gloss-alert-note) 10%, var(--gloss-bg));
+    border-color: color-mix(in srgb, var(--gloss-alert-note) 34%, var(--gloss-bg));
+
+    .markdown-alert-title {
+      color: var(--gloss-alert-note);
+    }
+
+    .markdown-alert-title::before {
+      clip-path: circle(50%);
+    }
+  }
+
+  .markdown-alert-tip {
+    background: color-mix(in srgb, var(--gloss-alert-tip) 10%, var(--gloss-bg));
+    border-color: color-mix(in srgb, var(--gloss-alert-tip) 34%, var(--gloss-bg));
+
+    .markdown-alert-title {
+      color: var(--gloss-alert-tip);
+    }
+
+    .markdown-alert-title::before {
+      clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    }
+  }
+
+  .markdown-alert-important {
+    background: color-mix(in srgb, var(--gloss-alert-important) 10%, var(--gloss-bg));
+    border-color: color-mix(in srgb, var(--gloss-alert-important) 34%, var(--gloss-bg));
+
+    .markdown-alert-title {
+      color: var(--gloss-alert-important);
+    }
+
+    .markdown-alert-title::before {
+      clip-path: inset(6% round 18%);
+    }
+  }
+
+  .markdown-alert-warning {
+    background: color-mix(in srgb, var(--gloss-alert-warning) 10%, var(--gloss-bg));
+    border-color: color-mix(in srgb, var(--gloss-alert-warning) 34%, var(--gloss-bg));
+
+    .markdown-alert-title {
+      color: var(--gloss-alert-warning);
+    }
+
+    .markdown-alert-title::before {
+      clip-path: polygon(50% 4%, 100% 94%, 0 94%);
+    }
+  }
+
+  .markdown-alert-caution {
+    background: color-mix(in srgb, var(--gloss-alert-caution) 10%, var(--gloss-bg));
+    border-color: color-mix(in srgb, var(--gloss-alert-caution) 34%, var(--gloss-bg));
+
+    .markdown-alert-title {
+      color: var(--gloss-alert-caution);
+    }
+
+    .markdown-alert-title::before {
+      clip-path: polygon(20% 0, 50% 30%, 80% 0, 100% 20%, 70% 50%, 100% 80%, 80% 100%, 50% 70%, 20% 100%, 0 80%, 30% 50%, 0 20%);
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Lists
+   ------------------------------------------------------------------------ */
+
+.markdown-body {
+  :is(ul, ol) {
+    padding-inline-start: 1.6em;
+  }
+
+  & li {
+    margin-block: 0.3em;
+  }
+
+  & li::marker {
+    color: var(--gloss-accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* A list inside an item hangs close under its parent line. */
+  & li > :is(ul, ol) {
+    margin-block: 0.3em 0;
+  }
+
+  & li > p {
+    margin-block-end: 0.5rem;
+  }
+
+  & li > :is(pre, table, blockquote, .markdown-alert) {
+    margin-block: 0.6rem;
+  }
+
+  & ol ol {
+    list-style-type: lower-alpha;
+  }
+
+  & ol ol ol {
+    list-style-type: lower-roman;
+  }
+
+  /* Task lists: the checkbox takes the marker's place in the gutter. */
+  .task-list-item {
+    list-style: none;
+  }
+
+  .task-list-item input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    box-sizing: border-box;
+    inline-size: 1em;
+    block-size: 1em;
+    margin-block: 0;
+    margin-inline: -1.5em 0.5em;
+    vertical-align: -0.14em;
+    border: 1.5px solid var(--gloss-text-muted);
+    border-radius: 0.24em;
+    background-color: transparent;
+    /* A disabled control is dimmed by default; a read-only page has nothing
+       to dim it against. */
+    opacity: 1;
+  }
+
+  /* The tick is two gradient strokes in the page colour, so it needs no image
+     and follows the theme. */
+  .task-list-item input[type="checkbox"]:checked {
+    border-color: var(--gloss-accent);
+    background-color: var(--gloss-accent);
+    background-image:
+      linear-gradient(45deg, transparent 30%, var(--gloss-bg) 31% 69%, transparent 70%),
+      linear-gradient(-45deg, transparent 39%, var(--gloss-bg) 40% 60%, transparent 61%);
+    background-origin: border-box;
+    background-repeat: no-repeat;
+    background-size: 0.24em 0.24em, 0.42em 0.42em;
+    background-position: 0.19em 0.47em, 0.39em 0.27em;
+  }
+
+  /* Definition lists */
+  & dt {
+    margin-block-start: 0.8em;
+    font-weight: 650;
+    color: var(--gloss-heading);
+  }
+
+  & dt:first-child {
+    margin-block-start: 0;
+  }
+
+  & dd {
+    margin-block: 0.2em 0;
+    margin-inline: 1.6em 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Tables
+
+   The table is its own scroll container: it is never wider than the column,
+   and a table too wide for the column scrolls inside it.
+   ------------------------------------------------------------------------ */
+
+.markdown-body {
+  & table {
+    display: block;
+    inline-size: max-content;
+    max-inline-size: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+    border: 1px solid var(--gloss-border);
+    border-radius: var(--gloss-radius);
+    border-collapse: collapse;
+    border-spacing: 0;
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    font-variant-numeric: tabular-nums;
+    /* Words stay whole so a squeezed table scrolls instead of shredding. */
+    overflow-wrap: normal;
+    /* Same edge shading as code blocks; see `pre`. */
+    background:
+      linear-gradient(to right, var(--gloss-bg) 35%, transparent) left center / 2.5rem 100% no-repeat local,
+      linear-gradient(to left, var(--gloss-bg) 35%, transparent) right center / 2.5rem 100% no-repeat local,
+      linear-gradient(to right, color-mix(in srgb, var(--gloss-text) 16%, transparent), transparent) left center / 0.9rem 100% no-repeat scroll,
+      linear-gradient(to left, color-mix(in srgb, var(--gloss-text) 16%, transparent), transparent) right center / 0.9rem 100% no-repeat scroll;
+  }
+
+  :is(th, td) {
+    padding: 0.5em 0.85em;
+    border-block-end: 1px solid var(--gloss-border);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  /* A body cell asks for its full width, up to a cap. Short cells stay on one
+     line and a cell of prose wraps at the cap, where the default table
+     algorithm would first squeeze every column down to its longest word and
+     leave rows a dozen lines tall. A table that outgrows the column scrolls. */
+  & td {
+    inline-size: max-content;
+    max-inline-size: 26em;
+  }
+
+  /* cmark writes column alignment as an attribute; the rule above would
+     otherwise override it. */
+  :is(th, td)[align="center"] {
+    text-align: center;
+  }
+
+  :is(th, td)[align="right"] {
+    text-align: end;
+  }
+
+  & th {
+    background: var(--gloss-surface);
+    font-weight: 650;
+    color: var(--gloss-heading);
+    vertical-align: bottom;
+    white-space: nowrap;
+  }
+
+  & tbody > tr:last-child > td {
+    border-block-end: 0;
+  }
+
+  & tbody > tr:hover > td {
+    background: var(--gloss-surface-raised);
+  }
+
+  /* On a hovered row, inline code would vanish into its own background. */
+  & tbody > tr:hover > td code {
+    background: var(--gloss-bg);
+  }
+
+  & td code {
+    overflow-wrap: normal;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Form fields
+
+   A document's own controls, and the fields Gloss makes from blanks (an
+   empty table cell, a run of underscores). A blank still looks like a blank
+   until it is used: an underline, or nothing at all in a table cell.
+   ------------------------------------------------------------------------ */
+
+.markdown-body {
+  :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"]), textarea, select) {
+    box-sizing: border-box;
+    max-inline-size: 100%;
+    padding: 0.25em 0.5em;
+    border: 1px solid var(--gloss-border);
+    border-radius: calc(var(--gloss-radius) * 0.6);
+    background: var(--gloss-bg);
+    color: var(--gloss-text);
+    font: inherit;
+    line-height: var(--gloss-line-height);
+    vertical-align: baseline;
+  }
+
+  & textarea {
+    display: block;
+    inline-size: 100%;
+    min-block-size: 2.2em;
+    resize: vertical;
+    field-sizing: content;
+  }
+
+  :is(input, textarea, select):focus-visible {
+    outline: 2px solid var(--gloss-accent);
+    outline-offset: 1px;
+  }
+
+  :is(input, textarea)::placeholder {
+    color: var(--gloss-text-muted);
+    opacity: 1;
+  }
+
+  :is(input[type="checkbox"], input[type="radio"]) {
+    accent-color: var(--gloss-accent);
+  }
+
+  & fieldset {
+    margin-block: 0 1rem;
+    padding: 0.5em 1em 0.75em;
+    border: 1px solid var(--gloss-border);
+    border-radius: var(--gloss-radius);
+  }
+
+  & legend {
+    padding-inline: 0.35em;
+    font-weight: 650;
+    color: var(--gloss-heading);
+  }
+
+  & label {
+    cursor: default;
+  }
+
+  /* A run of underscores becomes a line to write on. */
+  & input.gloss-blank {
+    inline-size: 12em;
+    padding-inline: 0.2em;
+    border-width: 0 0 1px;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  /* An empty table cell stays empty-looking until it is used. */
+  & td > textarea.gloss-blank {
+    min-inline-size: 12em;
+    min-block-size: 0;
+    margin: -0.25em -0.5em;
+    inline-size: calc(100% + 1em);
+    max-inline-size: none;
+    border-color: transparent;
+    background: transparent;
+    resize: none;
+  }
+
+  & td > textarea.gloss-blank:hover {
+    border-color: var(--gloss-border);
+  }
+
+  & td > textarea.gloss-blank:focus-visible {
+    background: var(--gloss-bg);
+  }
+
+  /* A task-list box can be ticked. */
+  .task-list-item input.gloss-task {
+    cursor: pointer;
+  }
+
+  .task-list-item input.gloss-task:focus-visible {
+    outline: 2px solid var(--gloss-accent);
+    outline-offset: 2px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Media, rules, disclosure
+   ------------------------------------------------------------------------ */
+
+.markdown-body {
+  :is(img, svg, video) {
+    max-inline-size: 100%;
+    block-size: auto;
+  }
+
+  & img {
+    border-radius: min(var(--gloss-radius), 6px);
+    vertical-align: middle;
+  }
+
+  & figure {
+    margin-inline: 0;
+  }
+
+  & figcaption {
+    margin-block-start: 0.5rem;
+    font-size: 0.875em;
+    color: var(--gloss-text-muted);
+    text-align: center;
+  }
+
+  & hr {
+    block-size: 1px;
+    margin-block: 2.5rem;
+    border: 0;
+    background: var(--gloss-border);
+  }
+
+  & details {
+    padding: 0.6rem 1rem;
+    border: 1px solid var(--gloss-border);
+    border-radius: var(--gloss-radius);
+  }
+
+  & details > :last-child {
+    margin-block-end: 0;
+  }
+
+  & summary {
+    font-weight: 650;
+    color: var(--gloss-heading);
+    cursor: pointer;
+  }
+
+  & summary::marker {
+    color: var(--gloss-accent);
+  }
+
+  & details[open] > summary {
+    margin-block-end: 0.6rem;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Footnotes
+   ------------------------------------------------------------------------ */
+
+.markdown-body {
+  .footnote-ref a,
+  & a[data-footnote-ref] {
+    padding-inline: 0.15em;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    text-decoration-line: none;
+  }
+
+  .footnotes {
+    margin-block-start: 3rem;
+    padding-block-start: 1.25rem;
+    border-block-start: 1px solid var(--gloss-border);
+    font-size: 0.875em;
+    color: var(--gloss-text-muted);
+  }
+
+  .footnotes ol {
+    margin-block-end: 0;
+  }
+
+  /* Arriving from a reference marks the note that was asked for. */
+  .footnotes li:target {
+    background: var(--gloss-surface-raised);
+    box-shadow: 0 0 0 0.35em var(--gloss-surface-raised);
+    border-radius: 1px;
+    color: var(--gloss-text);
+  }
+
+  /* The return arrow is drawn as text, not as an emoji. */
+  .footnote-backref,
+  & a[data-footnote-backref] {
+    font-family: var(--gloss-font-mono);
+    font-variant-emoji: text;
+    text-decoration-line: none;
+  }
+}

@@ -1,0 +1,8 @@
+.build/
+crash-*
+leak-*
+timeout-*
+oom-*
+# Inputs the fuzzer discovers are kept locally; only the seeds are committed.
+corpus/*/*
+!corpus/*/seed-*

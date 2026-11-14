@@ -1,0 +1,16 @@
+{
+  "contract": 1,
+  "id": "io.sigler.webby.gloss.longform",
+  "name": "Longform",
+  "author": "Gloss",
+  "version": "1.0.0",
+  "kind": "theme",
+  "appearances": [
+    "light",
+    "dark"
+  ],
+  "styles": [
+    "theme.css"
+  ],
+  "scripts": []
+}

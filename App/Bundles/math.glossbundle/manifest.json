@@ -1,0 +1,12 @@
+{
+  "contract": 1,
+  "id": "io.sigler.webby.gloss.math",
+  "name": "Math",
+  "author": "Gloss",
+  "version": "1.0.0",
+  "kind": "add-on",
+  "styles": ["katex.min.css", "math.css"],
+  "scripts": ["loader.js"],
+  "inlineStyles": true,
+  "when": { "languages": ["math"], "text": ["$$", "\\(", "\\[", "$`"] }
+}

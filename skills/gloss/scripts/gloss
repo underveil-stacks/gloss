@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# Drive the Gloss Markdown viewer over AppleScript. Read-only: nothing here can
+# change a document.
+#
+#   gloss open <file>       open a file, wait until rendered, print its document name
+#   gloss list              names of the open documents, front first
+#   gloss text [name]       the rendered page as plain text
+#   gloss html [name]       the rendered page as HTML
+#   gloss outline [name]    the document's headings, one per line
+#   gloss info [name]       theme, appearance and whether the file is still there
+#   gloss close [name]      close a document
+#   gloss quit              quit Gloss
+#   gloss get <setting>     read a setting: appearance, light-theme, dark-theme, text-width, zoom
+#   gloss set <setting> <value>   change one (appearance: auto|light|dark; text-width: window|theme;
+#                           zoom: 0.5 to 3)
+#   gloss bundles           identifiers of the installed themes and add-ons
+#   gloss settings          open the Settings window
+#   gloss guide             print the agent guide built into the running app
+#   gloss dictionary        print the app's full scripting dictionary (sdef XML)
+#
+# [name] is a document name as printed by `list`; omitted, it means the front
+# document. Set GLOSS_APP to an app path to drive a specific build.
+set -euo pipefail
+
+APP="${GLOSS_APP:-Gloss}"
+cmd="${1:-}"
+arg="${2:-}"
+value="${3:-}"
+
+case "$cmd" in
+  open)
+    [[ -n "$arg" ]] || { echo "usage: gloss open <file>" >&2; exit 2; }
+    [[ -f "$arg" ]] || { echo "gloss: no such file: $arg" >&2; exit 1; }
+    arg="$(cd "$(dirname "$arg")" && pwd -P)/$(basename "$arg")"
+    ;;
+  dictionary)
+    if [[ "$APP" == /* ]]; then exec sdef "$APP"; fi
+    path="$(osascript -e "POSIX path of (path to application \"$APP\")")"
+    exec sdef "$path"
+    ;;
+  get|set)
+    case "$arg" in
+      appearance|light-theme|dark-theme|text-width|zoom) ;;
+      *) echo "gloss: unknown setting '$arg' (appearance, light-theme, dark-theme, text-width, zoom)" >&2; exit 2 ;;
+    esac
+    if [[ "$cmd" == set && -z "$value" ]]; then echo "usage: gloss set <setting> <value>" >&2; exit 2; fi
+    ;;
+  list|text|html|outline|info|close|quit|guide|bundles|settings) ;;
+  *)
+    sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//' >&2
+    exit 2
+    ;;
+esac
+
+exec osascript - "$APP" "$cmd" "$arg" "$value" <<'APPLESCRIPT'
+on run argv
+  set appName to item 1 of argv
+  set cmd to item 2 of argv
+  set arg to item 3 of argv
+  set newValue to item 4 of argv
+  with timeout of 30 seconds
+    using terms from application "Gloss"
+      tell application appName
+        if cmd is "quit" then
+          quit
+          return
+        end if
+        if cmd is "guide" then return agent guide
+        if cmd is "settings" then
+          show settings
+          return
+        end if
+        if cmd is "bundles" then
+          set AppleScript's text item delimiters to linefeed
+          return (bundle identifiers) as text
+        end if
+        if cmd is "get" then
+          if arg is "appearance" then return appearance mode
+          if arg is "light-theme" then return light theme
+          if arg is "dark-theme" then return dark theme
+          if arg is "text-width" then return text width
+          if arg is "zoom" then return zoom
+        end if
+        if cmd is "set" then
+          if arg is "appearance" then set appearance mode to newValue
+          if arg is "light-theme" then set light theme to newValue
+          if arg is "dark-theme" then set dark theme to newValue
+          if arg is "text-width" then set text width to newValue
+          if arg is "zoom" then set zoom to (newValue as real)
+          return
+        end if
+        if cmd is "list" then
+          set AppleScript's text item delimiters to linefeed
+          return (name of every document) as text
+        end if
+        if cmd is "open" then
+          open POSIX file arg
+          set AppleScript's text item delimiters to "/"
+          set wanted to last text item of arg
+          repeat 100 times
+            if (exists document wanted) then
+              if not (loading of document wanted) then return wanted
+            end if
+            delay 0.1
+          end repeat
+          error "Gloss did not finish rendering " & wanted
+        end if
+
+        if (count of documents) is 0 then error "Gloss has no open documents"
+        if arg is "" then
+          set doc to document 1
+        else
+          set doc to document arg
+        end if
+        if cmd is "close" then
+          close doc
+          return
+        end if
+        repeat 100 times
+          if not (loading of doc) then exit repeat
+          delay 0.1
+        end repeat
+        if cmd is "info" then
+          return "theme: " & (theme of doc) & linefeed & "appearance: " & (appearance of doc) & linefeed & "file missing: " & (file missing of doc)
+        end if
+        if cmd is "text" then return page text of doc
+        if cmd is "html" then return page html of doc
+        if cmd is "outline" then
+          set AppleScript's text item delimiters to linefeed
+          return (outline of doc) as text
+        end if
+      end tell
+    end using terms from
+  end timeout
+end run
+APPLESCRIPT

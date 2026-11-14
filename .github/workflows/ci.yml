@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  # New advisories appear without any change to this repository.
+  schedule:
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The render core has no UI dependency, so it is tested on Linux. The app
+  # itself is built and tested locally with `make check`; see the README.
+  core:
+    runs-on: ubuntu-latest
+    container: swift:6.1
+    steps:
+      - uses: actions/checkout@v7
+      - run: swift test --package-path Packages/GlossCore
+
+  # Hostile input against the sanitizer and the whole render pipeline, with
+  # the address sanitizer on. A short run on every change; scripts/fuzz.sh
+  # takes a longer budget by hand.
+  fuzz:
+    runs-on: ubuntu-latest
+    container: swift:6.1
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - run: scripts/fuzz.sh sanitizer 90
+      - run: scripts/fuzz.sh render 90
+      - if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: fuzz-findings
+          path: |
+            Fuzz/crash-*
+            Fuzz/leak-*
+            Fuzz/timeout-*
+            Fuzz/oom-*
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Committed secrets (gitleaks)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo gitleaks/gitleaks --pattern '*linux_x64.tar.gz' --output "$RUNNER_TEMP/gitleaks.tgz"
+          tar -xzf "$RUNNER_TEMP/gitleaks.tgz" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" detect --redact --no-banner
+
+      # Swift packages, and the JavaScript libraries copied into the app, which
+      # third-party/package-lock.json records so a scanner can see them.
+      - name: Known vulnerabilities in dependencies (OSV-Scanner)
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/osv-scanner" https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64
+          chmod +x "$RUNNER_TEMP/osv-scanner"
+          "$RUNNER_TEMP/osv-scanner" scan source --config=osv-scanner.toml \
+            --lockfile=Packages/GlossCore/Package.resolved \
+            --lockfile=third-party/package-lock.json
+
+      - name: Known vulnerabilities in vendored JavaScript files (retire.js)
+        run: npx --yes retire@5 --path App --outputformat text
+
+      # The copies in the repository must be exactly the published files for
+      # the recorded versions, not something edited by hand.
+      - name: Vendored files match their recorded versions
+        run: |
+          scripts/vendor.sh
+          git diff --exit-code -- App/Resources/vendor App/Bundles

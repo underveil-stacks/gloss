@@ -1,0 +1,161 @@
+name: Gloss
+options:
+  bundleIdPrefix: io.sigler.webby
+  deploymentTarget:
+    macOS: "27.0"
+  createIntermediateGroups: true
+packages:
+  GlossCore:
+    path: Packages/GlossCore
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    ARCHS: arm64
+    MARKETING_VERSION: "0.2.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # Developer ID signing and the hardened runtime from the first build. CI
+    # passes CODE_SIGNING_ALLOWED=NO; it never signs.
+    ENABLE_HARDENED_RUNTIME: YES
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "Developer ID Application"
+    DEVELOPMENT_TEAM: TQU4V8J566
+targets:
+  Gloss:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+        excludes:
+          - Bundles
+      # Built-in themes and add-ons, copied as a folder so each bundle keeps
+      # its own layout.
+      - path: App/Bundles
+        type: folder
+        buildPhase: resources
+      # The agent skill ships inside the app; `agent guide` returns it,
+      # followed by the authoring reference.
+      - path: skills/gloss/SKILL.md
+        buildPhase: resources
+      - path: skills/gloss/AUTHORING.md
+        buildPhase: resources
+    dependencies:
+      - package: GlossCore
+      - target: GlossQuickLook
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.sigler.webby.gloss
+        PRODUCT_NAME: Gloss
+        ENABLE_APP_SANDBOX: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        OTHER_CODE_SIGN_FLAGS: "--timestamp"
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Gloss
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSApplicationCategoryType: public.app-category.productivity
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSHumanReadableCopyright: "MIT licensed."
+        NSAppleScriptEnabled: true
+        OSAScriptingDefinition: Gloss.sdef
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Markdown Document
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Default
+            LSItemContentTypes:
+              - net.daringfireball.markdown
+          - CFBundleTypeName: Gloss Bundle
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Owner
+            LSTypeIsPackage: true
+            LSItemContentTypes:
+              - io.sigler.webby.gloss.bundle
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: io.sigler.webby.gloss.bundle
+            UTTypeDescription: Gloss Bundle
+            UTTypeConformsTo:
+              - com.apple.package
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - glossbundle
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: net.daringfireball.markdown
+            UTTypeDescription: Markdown Document
+            UTTypeConformsTo:
+              - public.plain-text
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - md
+                - markdown
+                - mdown
+                - mkd
+  # Quick Look preview. Sandboxed, as every app extension must be, so it
+  # carries its own copies of the stylesheets and the highlighter.
+  GlossQuickLook:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: QuickLook
+      - path: App/Highlighter.swift
+      - path: App/Resources/vendor/highlight.min.js
+        buildPhase: resources
+      - path: App/Resources/base.css
+        buildPhase: resources
+      - path: App/Bundles/gloss-dark.glossbundle
+        type: folder
+        buildPhase: resources
+      - path: App/Bundles/gloss-light.glossbundle
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - package: GlossCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.sigler.webby.gloss.QuickLook
+        PRODUCT_NAME: GlossQuickLook
+        CODE_SIGN_ENTITLEMENTS: QuickLook/QuickLook.entitlements
+        ENABLE_APP_SANDBOX: YES
+        OTHER_CODE_SIGN_FLAGS: "--timestamp"
+        SKIP_INSTALL: YES
+    info:
+      path: QuickLook/Info.plist
+      properties:
+        CFBundleDisplayName: Gloss Quick Look
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.quicklook.preview
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).PreviewProvider
+          NSExtensionAttributes:
+            QLIsDataBasedPreview: true
+            QLSupportedContentTypes:
+              - net.daringfireball.markdown
+            QLSupportsSearchableItems: false
+  GlossTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: AppTests
+    dependencies:
+      - target: Gloss
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.sigler.webby.gloss.tests
+        GENERATE_INFOPLIST_FILE: YES
+        BUNDLE_LOADER: $(TEST_HOST)
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/Gloss.app/Contents/MacOS/Gloss
+schemes:
+  Gloss:
+    build:
+      targets:
+        Gloss: all
+        GlossTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - GlossTests
+    archive:
+      config: Release

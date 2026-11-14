@@ -1,0 +1,17 @@
+.gloss-mermaid {
+  margin: 1.5em 0;
+  text-align: center;
+  overflow-x: auto;
+}
+
+.gloss-mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.gloss-mermaid-error {
+  color: var(--gloss-alert-caution, inherit);
+  font-family: var(--gloss-font-mono, monospace);
+  font-size: 0.85em;
+  white-space: pre-wrap;
+}

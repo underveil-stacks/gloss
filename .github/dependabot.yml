@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: swift
+    directory: /Packages/GlossCore
+    schedule:
+      interval: weekly
+  # The JavaScript libraries copied into the app. A pull request here changes
+  # only the record: run scripts/vendor.sh on the branch to update the files.
+  - package-ecosystem: npm
+    directory: /third-party
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

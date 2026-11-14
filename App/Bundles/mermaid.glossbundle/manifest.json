@@ -1,0 +1,12 @@
+{
+  "contract": 1,
+  "id": "io.sigler.webby.gloss.mermaid",
+  "name": "Mermaid Diagrams",
+  "author": "Gloss",
+  "version": "1.0.0",
+  "kind": "add-on",
+  "styles": ["mermaid.css"],
+  "scripts": ["loader.js"],
+  "inlineStyles": true,
+  "when": { "languages": ["mermaid"] }
+}
