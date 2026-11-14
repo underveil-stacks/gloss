@@ -37,7 +37,7 @@ jobs:
       - run: scripts/fuzz.sh sanitizer 90
       - run: scripts/fuzz.sh render 90
       - if: failure()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: fuzz-findings
           path: |
