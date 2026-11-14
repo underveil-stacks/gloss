@@ -68,4 +68,9 @@ else
   echo "Skipped notarization: this image will be refused by Gatekeeper on another Mac."
 fi
 
-shasum -a 256 "$DMG"
+# The agent skill, for assistants that install skills from a zip.
+SKILL_ZIP="dist/gloss-skill-$VERSION.zip"
+rm -f "$SKILL_ZIP"
+git archive --format=zip -o "$SKILL_ZIP" HEAD:skills gloss
+
+shasum -a 256 "$DMG" "$SKILL_ZIP"

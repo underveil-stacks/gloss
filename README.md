@@ -154,15 +154,15 @@ end tell
 ### For your AI assistant
 
 `skills/gloss` is a ready-made skill: a `SKILL.md` that tells an assistant when and how to use
-Gloss, and a small `gloss` command that wraps the AppleScript. To give it to an assistant such as
-Claude Code, copy the folder into its skills directory:
+Gloss, a small `gloss` command that wraps the AppleScript, and `AUTHORING.md`, the part for
+writing: what Gloss renders, how to write a form, how it degrades in other viewers, and how to
+read the exported answers. Each release also carries it as `gloss-skill-<version>.zip`.
 
-```sh
-cp -R skills/gloss ~/.claude/skills/gloss
-```
-
-`skills/gloss/AUTHORING.md` is the part for writing: what Gloss renders, how to write a form,
-how it degrades in other viewers, and how to read the exported answers.
+- **Claude Code:** unzip it into `~/.claude/skills/` (or copy `skills/gloss` from a clone), so
+  that `~/.claude/skills/gloss/SKILL.md` exists.
+- **Claude apps (claude.ai, desktop):** upload the zip as a custom skill in the app's settings.
+  There the assistant can write Gloss documents and read exports, but cannot drive the app,
+  which needs AppleScript on your Mac.
 
 The same guide is built into the app, so an assistant with no skill installed can ask for it:
 
